@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
+  <title>Retro Blocks 1989</title>
+  <style>
+    *{box-sizing:border-box}html,body{width:100%;height:100%;margin:0;overflow:hidden;background:#8fc3d4;font-family:Arial,Helvetica,sans-serif}canvas{display:block;width:100%;height:100%}
+    #hud{position:absolute;inset:0;pointer-events:none;color:#fff;text-shadow:2px 2px 0 #243b4a}
+    #brand{position:absolute;left:16px;top:12px;font-weight:900;font-size:18px;letter-spacing:.5px}.year{color:#ffcf3f}
+    #stats{position:absolute;right:14px;top:12px;text-align:right;font-weight:800;font-size:15px}
+    #cross{position:absolute;left:50%;top:50%;width:8px;height:8px;margin:-4px;border:2px solid rgba(255,255,255,.85);border-radius:50%}
+    #prompt{position:absolute;left:50%;bottom:92px;transform:translateX(-50%);background:rgba(20,35,45,.78);border:2px solid #fff;padding:8px 12px;border-radius:6px;font-weight:800;display:none}
+    #controls{position:absolute;left:12px;bottom:12px;display:flex;gap:6px}.key{width:38px;height:38px;border:2px solid rgba(255,255,255,.8);background:rgba(20,35,45,.55);border-radius:7px;text-align:center;line-height:34px;font-weight:900}.key.wide{width:70px}.key.active{background:#f3c34b;color:#243b4a}
+    #touch{position:absolute;inset:0;display:none;pointer-events:none}.touchbtn{pointer-events:auto;position:absolute;width:68px;height:68px;border:2px solid rgba(255,255,255,.75);border-radius:50%;background:rgba(20,35,45,.48);color:white;font-size:28px;font-weight:900}.touchbtn:active{background:#f3c34b;color:#253c49}
+    #left{left:18px;bottom:20px}#right{left:94px;bottom:20px}#up{right:94px;bottom:20px}#down{right:18px;bottom:20px}
+    #chat{position:absolute;left:16px;bottom:62px;max-width:260px;font-size:13px}.line{background:rgba(30,45,52,.58);padding:4px 7px;margin-top:3px;border-radius:3px}
+    #enter{position:absolute;left:50%;bottom:20px;transform:translateX(-50%);width:132px;height:46px;border:2px solid white;border-radius:8px;background:rgba(34,49,56,.7);color:white;font-weight:900;pointer-events:auto;text-align:center;line-height:42px;display:none}
+    @media(max-width:700px),(pointer:coarse){#touch{display:block}#controls{display:none}#enter{display:block}#chat{bottom:104px}}
+  </style>
+</head>
+<body>
+  <canvas id="game"></canvas>
+  <div id="hud"><div id="brand">BLOCK WORLD <span class="year">1989</span></div><div id="stats"><div>PLACE: <span id="place">1</span></div><div id="cash">B$ 0</div></div><div id="cross"></div><div id="prompt"></div><div id="chat"></div>
+    <div id="controls"><div class="key" id="keyW">W</div><div class="key" id="keyA">A</div><div class="key" id="keyS">S</div><div class="key" id="keyD">D</div><div class="key wide" id="keyE">DRIVE</div></div>
+    <div id="touch"><button class="touchbtn" id="left">‹</button><button class="touchbtn" id="right">›</button><button class="touchbtn" id="up">▲</button><button class="touchbtn" id="down">▼</button></div><div id="enter">ENTER / EXIT</div>
+  </div>
+  <script type="module">
+    import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js';
+
+    const canvas=document.querySelector('#game'), renderer=new THREE.WebGLRenderer({canvas,antialias:true});
+    renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.setSize(innerWidth,innerHeight);renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+    const scene=new THREE.Scene();scene.background=new THREE.Color(0x91c6d8);scene.fog=new THREE.Fog(0x91c6d8,90,210);
+    const camera=new THREE.PerspectiveCamera(68,innerWidth/innerHeight,.1,300);
+    scene.add(new THREE.HemisphereLight(0xdff7ff,0x66804b,2));const sun=new THREE.DirectionalLight(0xfff1c7,2.6);sun.position.set(-40,70,30);sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);sun.shadow.camera.left=-70;sun.shadow.camera.right=70;sun.shadow.camera.top=70;sun.shadow.camera.bottom=-70;scene.add(sun);
+
+    function box(w,h,d,c,x,y,z,opts={}){const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),new THREE.MeshStandardMaterial({color:c,roughness:.75,metalness:opts.metal||0}));m.position.set(x,y,z);m.castShadow=opts.noshadow?false:true;m.receiveShadow=true;scene.add(m);return m}
+    function cyl(r,h,c,x,y,z,rot=false){const m=new THREE.Mesh(new THREE.CylinderGeometry(r,r,h,16),new THREE.MeshStandardMaterial({color:c,roughness:.7}));m.position.set(x,y,z);if(rot)m.rotation.z=Math.PI/2;m.castShadow=true;m.receiveShadow=true;scene.add(m);return m}
+
+    // World
+    box(220,.8,220,0x67a86d,0,-.4,0,{noshadow:true});
+    // road grid
+    box(220,.12,24,0x566168,0,.02,0,{noshadow:true});box(220,.12,24,0x566168,0,.02,-54,{noshadow:true});box(24,.12,220,0x566168,-58,.02,0,{noshadow:true});box(24,.12,220,0x566168,58,.02,0,{noshadow:true});
+    for(let i=-100;i<110;i+=8){box(.18,.02,5,0xf5df9a,i,.09,0,{noshadow:true});box(.18,.02,5,0xf5df9a,i,.09,-54,{noshadow:true});box(5,.02,.18,0xf5df9a,-58,.09,i,{noshadow:true});box(5,.02,.18,0xf5df9a,58,.09,i,{noshadow:true})}
+    // sidewalks
+    box(220,.25,5,0xb7b9aa,0,.18,13,{noshadow:true});box(220,.25,5,0xb7b9aa,0,.18,-13,{noshadow:true});
+
+    function house(x,z,color){box(20,10,16,color,x,5,z);box(22,2,18,0x7b4d35,x,11,z);box(6,7,1,0x4d3428,x-5,3.5,z+8.1);box(4,4,1,0x83b7c4,x+5,6,z+8.1);cyl(1.2,7,0x9aa8a1,x+7,3,z-8);}
+    house(-34,-34,0xe7a768);house(28,-34,0x74aebe);house(-34,32,0xc9b8c1);house(28,32,0xdbc973);
+    // garage door
+    box(8,5,.5,0xded7c5,-34,3,-25.2);box(8,5,.5,0xded7c5,28,3,-25.2);
+    // trees and props
+    function tree(x,z){cyl(.8,5,0x725038,x,2.5,z);const leaves=new THREE.Mesh(new THREE.ConeGeometry(4,8,8),new THREE.MeshStandardMaterial({color:0x3f8647}));leaves.position.set(x,8,z);leaves.castShadow=true;scene.add(leaves)}
+    [[-18,-20],[8,-21],[-8,20],[43,24],[43,-18],[-43,17],[-88,34],[88,-34]].forEach(p=>tree(p[0],p[1]));
+    // lampposts
+    for(const x of [-46,46,-46,46])for(const z of [-42,-18,18,42]){cyl(.18,7,0x4c5960,x,3.5,z);box(2.5,.7,2.5,0xf6df94,x,7,z)}
+
+    function makeCar(color){const g=new THREE.Group();const mat=new THREE.MeshStandardMaterial({color,roughness:.5,metalness:.1});
+      const body=new THREE.Mesh(new THREE.BoxGeometry(5.2,1.4,9),mat);body.position.y=1.7;body.castShadow=true;g.add(body);
+      const cabin=new THREE.Mesh(new THREE.BoxGeometry(4.4,1.8,4),new THREE.MeshStandardMaterial({color:0x9ed0da,roughness:.2,metalness:.15}));cabin.position.set(0,3,0);cabin.castShadow=true;g.add(cabin);
+      for(const sx of [-2.7,2.7])for(const sz of [-3,3]){const w=new THREE.Mesh(new THREE.CylinderGeometry(1.15,1.15,.7,14),new THREE.MeshStandardMaterial({color:0x20282b,roughness:.8}));w.rotation.z=Math.PI/2;w.position.set(sx,.9,sz);w.castShadow=true;g.add(w)}
+      const bumper=new THREE.Mesh(new THREE.BoxGeometry(5.4,.35,.25),new THREE.MeshStandardMaterial({color:0xd4d4c8,metalness:.5}));bumper.position.set(0,1.05,4.55);g.add(bumper);
+      g.userData={speed:0,steer:0};scene.add(g);return g}
+    const car=makeCar(0xe24d43);car.position.set(-58,0,8);car.rotation.y=-Math.PI/2;
+    const actor=new THREE.Group();
+    function actorPart(w,h,d,color,x,y,z){const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),new THREE.MeshStandardMaterial({color,roughness:.8}));m.position.set(x,y,z);m.castShadow=true;m.receiveShadow=true;actor.add(m)}
+    actorPart(1.05,1.35,.62,0x356acb,0,2.1,0);actorPart(.82,.82,.78,0xf2bd82,0,3.2,0);actorPart(1.5,.34,.48,0xe2a63b,0,3.62,0);
+    for(const x of [-.78,.78])actorPart(.38,1.2,.42,0xf2bd82,x,2.15,0);
+    for(const x of [-.3,.3]){actorPart(.42,1.05,.48,0x303d55,x,.72,0);actorPart(.48,.28,.7,0x252a32,x,.18,.1)}
+    scene.add(actor);
+    const traffic=[];for(const p of [[58,20,0xe8cf55],[58,-20,0x4ba9cf]]){const c=makeCar(p[2]);c.position.set(p[0],0,p[1]);traffic.push(c)}
+makeCar(0x56b76d).position.set(-4,0,-54);
+
+    const keys={},touch={};onkeydown=e=>{keys[e.key.toLowerCase()]=true;if(e.key===' '||e.key.toLowerCase()==='e'){e.preventDefault();toggleDrive()} };onkeyup=e=>keys[e.key.toLowerCase()]=false;
+    function bind(id,k){const b=document.querySelector('#'+id);b.addEventListener('pointerdown',e=>{e.prevent();touch[k]=true});b.addEventListener('pointerup',()=>touch[k]=false);b.addEventListener('pointercancel',()=>touch[k]=false);b.addEventListener('pointerleave',()=>touch[k]=false)}
+    bind('up','w');bind('down','s');bind('left','a');bind('right','d');document.querySelector('#enter').addEventListener('pointerdown',toggleDrive);document.querySelector('#keyE').addEventListener('pointerdown',toggleDrive);
+
+    let driving=false,pos=new THREE.Vector3(-53,0,17),yaw=Math.PI/2,velocity=new THREE.Vector3(),inside=false;
+    const prompt=document.querySelector('#prompt'),chat=document.querySelector('#chat');
+    function toggleDrive(){if(!driving&&car.position.distanceTo(pos)<11){driving=true;chat.innerHTML='<div class="line">Vehicle entered</div>';prompt.style.display='none'}else if(driving){driving=false;pos.copy(car.position).add(new THREE.Vector3(Math.cos(yaw)*6,0,Math.sin(yaw)*6));chat.innerHTML='<div class="line">Vehicle exited</div>'}}
+    // world boundary physics
+    const obstacles=[];
+    function safe(p){if(!(p.x>-105&&p.x<105&&p.z>-105&&p.z<105))return false;for(const [x,z] of [[-34,-34],[28,-34],[-34,32],[28,32]])if(Math.abs(p.x-x)<12&&Math.abs(p.z-z)<10)return false;return true}
+
+    let clock=new THREE.Clock(),cash=0;
+    function animate(){const dt=Math.min(clock.getDelta(),.05);const forward=keys.w||keys.arrowup||touch.w,back=keys.s||keys.arrowdown||touch.s,left=keys.a||keys.arrowleft||touch.a,right=keys.d||keys.arrowright||touch.d;
+      if(driving){const acc=(forward?17:0)-(back?12:0);car.userData.speed*=Math.pow(.08,dt);car.userData.speed+=acc*dt;car.userData.speed=Math.max(-8,Math.min(22,car.userData.speed));const steer=(right?1:0)-(left?1:0);car.rotation.y-=steer*dt*1.5*(.35+Math.abs(car.userData.speed)/20);const dir=new THREE.Vector3(-Math.sin(car.rotation.y),0,-Math.cos(car.rotation.y));const next=car.position.clone().addScaledVector(dir,car.userData.speed*dt);if(safe(next))car.position.copy(next);else car.userData.speed*=-.25;
+        pos.copy(car.position);yaw=car.rotation.y; }
+      else{const vyaw=camera.rotation.y;const dx=(right?1:0)-(left?1:0),dz=(forward?1:0)-(back?1:0);if(dx||dz){const len=Math.hypot(dx,dz);velocity.set(dx/len,0,dz/len);velocity.applyAxisAngle(new THREE.Vector3(0,1,0),-yaw);if(!safe(pos.clone().addScaledVector(velocity,dt*9))){}else pos.addScaledVector(velocity,dt*9)}}
+      // camera follow orbit
+      actor.position.copy(pos);actor.rotation.y=yaw;actor.visible=!driving;
+      let target,dist;if(driving){target=car.position;dist=21}else{target=pos;dist=15}
+      const desired=new THREE.Vector3(target.x-Math.sin(yaw)*dist,driving?10:9,target.z-Math.cos(yaw)*dist);camera.position.lerp(desired,1-Math.pow(.001,dt));camera.lookAt(target.x,driving?2:3,target.z);
+      if(!driving){prompt.style.display=car.position.distanceTo(pos)<11?'block':'none';prompt.textContent='Press E — Drive'}
+      if(driving){cash+=Math.abs(car.userData.speed)*dt*.2;if(cash>999999)cash=999999;document.querySelector('#cash').textContent='B$ '+Math.floor(cash)}
+      renderer.render(scene,camera);requestAnimationFrame(animate)}
+    
+    // initial camera
+    pos.set(-53,0,17);camera.position.set(-65,9,17);camera.lookAt(pos);requestAnimationFrame(animate);
+  </script>
+</body>
+</html>
